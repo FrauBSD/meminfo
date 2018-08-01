@@ -3,11 +3,11 @@
 #
 # $Title: Script to show memory usage on FreeBSD $
 # $Copyright: 2018 Devin Teske. All rights reserved. $
-# $FrauBSD: meminfo/meminfo 2018-08-01 15:10:53 -0700 freebsdfrau $
+# $FrauBSD: meminfo/meminfo 2018-08-01 15:25:56 -0700 freebsdfrau $
 #
 ############################################################ GLOBALS
 
-VERSION='$Version: 2.3 $'
+VERSION='$Version: 2.3.1 $'
 
 pgm="${0##*/}" # Program basename
 
@@ -40,7 +40,7 @@ usage()
 {
 	local optfmt="\t%-10s %s\n"
 	exec >&2
-	printf "Usage: %s [-AaBnPT] [-o name]\n" "$pgm"
+	printf "Usage: %s [-AaBnPTV] [-o name]\n" "$pgm"
 	printf "Options:\n"
 	printf "$optfmt" "-A" "Show all stats (default)."
 	printf "$optfmt" "-a" "Show all processes."
@@ -49,6 +49,7 @@ usage()
 	printf "$optfmt" "-P" "Show ps info."
 	printf "$optfmt" "-o name" "Show SNMP OID value by name."
 	printf "$optfmt" "-T" "Show top info."
+	printf "$optfmt" "-V" "Print version on stdout and exit."
 	printf "SNMP OIDs:\n"
 	printf "$optfmt" "memAvail" "Available memory in bytes."
 	printf "$optfmt" "memTotal" "Total memory in bytes."
