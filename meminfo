@@ -3,11 +3,11 @@
 #
 # $Title: Script to show memory usage on FreeBSD $
 # $Copyright: 2018 Devin Teske. All rights reserved. $
-# $FrauBSD: meminfo/meminfo 2018-08-01 15:25:56 -0700 freebsdfrau $
+# $FrauBSD: meminfo/meminfo 2018-08-03 05:48:56 -0700 freebsdfrau $
 #
 ############################################################ GLOBALS
 
-VERSION='$Version: 2.3.1 $'
+VERSION='$Version: 2.3.2 $'
 
 pgm="${0##*/}" # Program basename
 
