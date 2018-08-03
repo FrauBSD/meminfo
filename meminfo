@@ -3,11 +3,11 @@
 #
 # $Title: Script to show memory usage on FreeBSD $
 # $Copyright: 2018 Devin Teske. All rights reserved. $
-# $FrauBSD: meminfo/meminfo 2018-08-03 09:30:34 -0700 freebsdfrau $
+# $FrauBSD: meminfo/meminfo 2018-08-03 09:37:33 -0700 freebsdfrau $
 #
 ############################################################ GLOBALS
 
-VERSION='$Version: 5.0 $'
+VERSION='$Version: 5.1 $'
 
 pgm="${0##*/}" # Program basename
 
@@ -198,11 +198,15 @@ top_info()
 	local cache=$(( $mfu_evictable_data + $mfu_evictable_metadata
 		+ $mru_evictable_data + $mru_evictable_metadata + $bufspace ))
 	local free_plus=$(( $free + $cache ))
+	local wired_minus=$(( $wired - $cache ))
 
 	if [ "$HUMANIZE" ]; then
 		local free_plus_human="$( humanize $free_plus )"
+		local wired_minus_human="$( humanize $wired_minus )"
 		printf "$FMT" "Used Memory (Wired)" \
 			"$wired_human ($( percent $wired $real ))"
+		printf "$FMT" "Used w/o Buf/Cache" \
+			"$wired_minus_human ($( percent $wired_minus $real ))"
 		printf "$FMT" "Avail (inc. Buf/Cache)" \
 			"$free_plus_human ($(
 				percent $free_plus $real
@@ -213,6 +217,8 @@ top_info()
 		printf "$FMT" "Used Memory (Wired)" "$wired ($(
 				percent $wired $real
 			))"
+		printf "$FMT" "Used w/o Buf/Cache" \
+			"$wired_minus ($( percent $wired_minus $real ))"
 		printf "$FMT" "Avail (inc. Buf/Cache)" \
 			"$free_plus ($( percent $free_plus $real))"
 		printf "$FMT" "ZFS ARC (min/used/max)" "$arc_min/$arc/$arc_max"
