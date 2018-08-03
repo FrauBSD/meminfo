@@ -3,11 +3,11 @@
 #
 # $Title: Script to show memory usage on FreeBSD $
 # $Copyright: 2018 Devin Teske. All rights reserved. $
-# $FrauBSD: meminfo/meminfo 2018-08-03 06:19:34 -0700 freebsdfrau $
+# $FrauBSD: meminfo/meminfo 2018-08-03 07:48:31 -0700 freebsdfrau $
 #
 ############################################################ GLOBALS
 
-VERSION='$Version: 3.0 $'
+VERSION='$Version: 4.0 $'
 
 pgm="${0##*/}" # Program basename
 
@@ -32,7 +32,7 @@ SNMP_STAT=		# -o name
 #
 # Miscellaneous
 #
-FMT="\t%22s: %s\n"
+FMT="\t%23s: %s\n"
 
 ############################################################ FUNCTIONS
 
@@ -135,7 +135,15 @@ sysctl_collect()
 	local vars="
 		vfs.zfs.arc_min vfs.zfs.arc_max
 		hw.physmem vm.stats.vm.v_page_count vm.stats.vm.v_page_size
-		vfs.zfs.mru_size vfs.zfs.mfu_size vfs.zfs.anon_size
+		kstat.zfs.misc.arcstats.mfu_evictable_data
+		kstat.zfs.misc.arcstats.mfu_evictable_metadata
+		kstat.zfs.misc.arcstats.mru_evictable_data
+		kstat.zfs.misc.arcstats.mru_evictable_metadata
+		kstat.zfs.misc.arcstats.size
+		vfs.bufspace
+		vm.stats.vm.v_free_count
+		vm.stats.vm.v_inactive_count
+		vm.stats.vm.v_laundry_count
 	" # END-QUOTE
 
 	eval "$( sysctl -e $vars 2> /dev/null | awk 'sub(/.*\./, "")' )"
@@ -169,7 +177,6 @@ dmesg_boot_info()
 #
 top_info()
 {
-	local var vars="wired arc"
 	local wired wired_human
 	local arc arc_human
 
@@ -177,35 +184,38 @@ top_info()
 	# Collect information from top(1)
 	#
 	echo "top info:"
-	eval "$( top | awk '
-		/^Mem:/ { sub(/ Wired.*/, ""); print "wired=" $NF }
-		/^ARC:/ { sub(/ Total.*/, ""); print "arc=" $NF }
-	' )"
-	for var in $vars; do
-		eval $var=\$\( dehumanize \$$var \)
-		[ "$HUMANIZE" ] && eval ${var}_human=\$\( humanize \$$var \)
-	done
-
-	local wired_arc_min=$wired
-	[ $arc -gt $arc_min ] && wired_arc_min=$(( $wired - $arc + $arc_min ))
+	wired=$(( $v_page_count * $v_page_size ))
+	arc=$size # kstat.zfs.misc.arcstats.size
 	if [ "$HUMANIZE" ]; then
-		local wired_arc_min_human="$( humanize $wired_arc_min )"
+		local var
+		for var in wired arc; do
+			eval ${var}_human=\$\( humanize \$$var \)
+		done
+	fi
+
+	local free=$(( ($v_free_count + $v_inactive_count + $v_laundry_count)
+		* $v_page_size ))
+	local cache=$(( $mfu_evictable_data + $mfu_evictable_metadata
+		+ $mru_evictable_data + $mru_evictable_metadata + $bufspace ))
+	local wired_no_cache=$(( $real - $free - $cache ))
+
+	if [ "$HUMANIZE" ]; then
+		local wired_no_cache_human="$( humanize $wired_no_cache )"
 		printf "$FMT" "Memory Used" \
-			"$wired_human ($( percent $wired $avail ))"
+			"$wired_human ($( percent $wired $real ))"
+		printf "$FMT" "Memory Used - Buf/Cache" \
+			"$wired_no_cache_human ($(
+				percent $wired_no_cache $real
+			))"
 		printf "$FMT" "ZFS ARC (min/used/max)" \
 			"$arc_min_human/$arc_human/$arc_max_human"
-		printf "$FMT" "Memory Used - ARC" \
-			"$wired_arc_min_human ($(
-				percent $wired_arc_min $avail
-			))"
 	else
 		printf "$FMT" "Memory Used" "$wired ($(
-				percent $wired $avail
+				percent $wired $real
 			))"
+		printf "$FMT" "Memory Used - Buf/Cache" \
+			"$wired_no_cache ($( percent $wired_no_cache $real))"
 		printf "$FMT" "ZFS ARC (min/used/max)" "$arc_min/$arc/$arc_max"
-		
-		printf "$FMT" "Memory Used - ARC" \
-			"$wired_arc_min ($( percent $wired_arc_min $avail ))"
 	fi
 }
 
@@ -325,14 +335,16 @@ shift $(( $OPTIND - 1 ))
 # Process SNMP oid and exit if given
 #
 [ "$SHOW_SNMP_STAT" ] && case "$SNMP_STAT" in
-memAvail)
+memAvail) # w/o buf/cache
 	snmp_type COUNTER64
 	HUMANIZE=
 	sysctl_collect
-	wired=$(( $v_page_count * v_page_size ))
-	arc=$(( $mfu_size + $mru_size + $anon_size ))
-	[ $arc -gt $arc_min ] && wired=$(( $wired - $arc + $arc_min ))
-	echo $wired
+	free=$(( ($v_free_count + $v_inactive_count + $v_laundry_count)
+		* $v_page_size ))
+	cache=$(( $mfu_evictable_data + $mfu_evictable_metadata
+		+ $mru_evictable_data + $mru_evictable_metadata + $bufspace ))
+	avail=$(( $free + $cache ))
+	echo $avail
 	exit $SUCCESS ;;
 memTotal)
 	snmp_type COUNTER64
