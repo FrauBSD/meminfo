@@ -3,11 +3,11 @@
 #
 # $Title: Script to show memory usage on FreeBSD $
 # $Copyright: 2018 Devin Teske. All rights reserved. $
-# $FrauBSD: meminfo/meminfo 2018-08-03 07:48:31 -0700 freebsdfrau $
+# $FrauBSD: meminfo/meminfo 2018-08-03 09:14:48 -0700 freebsdfrau $
 #
 ############################################################ GLOBALS
 
-VERSION='$Version: 4.0 $'
+VERSION='$Version: 4.1 $'
 
 pgm="${0##*/}" # Program basename
 
@@ -32,7 +32,7 @@ SNMP_STAT=		# -o name
 #
 # Miscellaneous
 #
-FMT="\t%23s: %s\n"
+FMT="\t%22s: %s\n"
 
 ############################################################ FUNCTIONS
 
@@ -134,7 +134,7 @@ sysctl_collect()
 {
 	local vars="
 		vfs.zfs.arc_min vfs.zfs.arc_max
-		hw.physmem vm.stats.vm.v_page_count vm.stats.vm.v_page_size
+		hw.physmem vm.stats.vm.v_wire_count vm.stats.vm.v_page_size
 		kstat.zfs.misc.arcstats.mfu_evictable_data
 		kstat.zfs.misc.arcstats.mfu_evictable_metadata
 		kstat.zfs.misc.arcstats.mru_evictable_data
@@ -184,7 +184,7 @@ top_info()
 	# Collect information from top(1)
 	#
 	echo "top info:"
-	wired=$(( $v_page_count * $v_page_size ))
+	wired=$(( $v_wire_count * $v_page_size ))
 	arc=$size # kstat.zfs.misc.arcstats.size
 	if [ "$HUMANIZE" ]; then
 		local var
@@ -201,19 +201,19 @@ top_info()
 
 	if [ "$HUMANIZE" ]; then
 		local wired_no_cache_human="$( humanize $wired_no_cache )"
-		printf "$FMT" "Memory Used" \
+		printf "$FMT" "Wired Memory" \
 			"$wired_human ($( percent $wired $real ))"
-		printf "$FMT" "Memory Used - Buf/Cache" \
+		printf "$FMT" "Wired w/o Buf/Cache" \
 			"$wired_no_cache_human ($(
 				percent $wired_no_cache $real
 			))"
 		printf "$FMT" "ZFS ARC (min/used/max)" \
 			"$arc_min_human/$arc_human/$arc_max_human"
 	else
-		printf "$FMT" "Memory Used" "$wired ($(
+		printf "$FMT" "Wired Memory" "$wired ($(
 				percent $wired $real
 			))"
-		printf "$FMT" "Memory Used - Buf/Cache" \
+		printf "$FMT" "Wired w/o Buf/Cache" \
 			"$wired_no_cache ($( percent $wired_no_cache $real))"
 		printf "$FMT" "ZFS ARC (min/used/max)" "$arc_min/$arc/$arc_max"
 	fi
