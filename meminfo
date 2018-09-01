@@ -187,7 +187,7 @@ top_info()
 	done
 
 	local wired_arc_min=$wired
-	[ $arc -gt $arc_min ] && wired_arc_main=$(( $wired - $arc + $arc_min ))
+	[ $arc -gt $arc_min ] && wired_arc_min=$(( $wired - $arc + $arc_min ))
 	if [ "$HUMANIZE" ]; then
 		local wired_arc_min_human="$( humanize $wired_arc_min )"
 		printf "$FMT" "Memory Used" \
